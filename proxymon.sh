@@ -166,26 +166,27 @@ cmd_migrate() {
     if [ -d "$old_certs" ] && [ "$(ls -A "$old_certs" 2>/dev/null)" ]; then
         log_info "Migrating certificates from $old_certs..."
         cp -a "$old_certs"/. "$CERTS_DIR"/
-        chmod 600 "$CERTS_DIR"/*.pem 2>/dev/null || true
-        chmod 600 "$CERTS_DIR"/*.key 2>/dev/null || true
 
         local cert_file="" key_file=""
         for f in "$CERTS_DIR"/*; do
-            case "$f" in
-                *.crt|*cert*.pem|*fullchain*) cert_file="$f" ;;
-                *.key|*key*.pem|*privkey*)    key_file="$f" ;;
-            esac
+            [ -f "$f" ] || continue
+            if openssl x509 -noout -in "$f" 2>/dev/null; then
+                cert_file="$f"
+            elif openssl pkey -noout -in "$f" 2>/dev/null; then
+                key_file="$f"
+            fi
         done
 
         if [ -n "$cert_file" ] && [ -n "$key_file" ]; then
             cp "$cert_file" "$CERTS_DIR/cert.pem"
             cp "$key_file"  "$CERTS_DIR/key.pem"
+            chmod 600 "$CERTS_DIR/cert.pem" "$CERTS_DIR/key.pem"
             set_env_var "TLS_CERT" "/opt/proxymon/certs/cert.pem"
             set_env_var "TLS_KEY"  "/opt/proxymon/certs/key.pem"
             log_info "TLS certificates migrated and configured."
         else
-            log_warn "Certificate files copied but could not auto-detect cert/key pair."
-            log_warn "Set TLS_CERT and TLS_KEY manually: proxymon edit TLS_CERT /opt/proxymon/certs/<file>"
+            log_warn "Certificate files copied but could not detect cert/key pair."
+            log_warn "Use: proxymon set-certs --cert=<file> --key=<file>"
         fi
     fi
 
