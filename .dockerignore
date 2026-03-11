@@ -1,0 +1,7 @@
+.git
+.github
+proxymon.sh
+*.md
+__pycache__
+.env
+docker-compose.yml

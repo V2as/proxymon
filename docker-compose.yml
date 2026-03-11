@@ -1,0 +1,12 @@
+services:
+  proxymon:
+    image: v2as/proxymon:latest
+    container_name: proxymon
+    restart: always
+    network_mode: host
+    pid: host
+    privileged: true
+    env_file:
+      - .env
+    volumes:
+      - ./certs:/opt/proxymon/certs:ro
